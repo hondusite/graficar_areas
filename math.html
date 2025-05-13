@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Área entre Curvas</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    input, button { padding: 5px; margin: 5px; }
+    #grafica { width: 100%; height: 500px; }
+  </style>
+</head>
+<body>
+  <h2>Área entre Curvas usando Integración</h2>
+
+  <label>Función 1: </label><input type="text" id="func1" value="sin(x)"><br>
+  <label>Función 2 (opcional): </label><input type="text" id="func2" value=""><br>
+  <label>Límite a: </label><input type="text" id="a" value="0">
+  <label>Límite b: </label><input type="text" id="b" value="pi"><br>
+
+  <button onclick="graficar()">Graficar Área</button>
+
+  <div id="grafica"></div>
+
+  <script>
+    function procesarFuncion(expr) {
+      return expr
+        .replace(/(\d)([a-zA-Z])/g, '$1*$2')       // 2x → 2*x
+        .replace(/([a-zA-Z])(\d)/g, '$1*$2')       // x2 → x*2
+        .replace(/(\))(\()/g, ')*(')               // )( → )*(
+        .replace(/(\d)\(/g, '$1*(')                // 2(x) → 2*(x)
+        .replace(/\)(\d)/g, ')*$1')                // )2 → )*2
+        .replace(/(\d)(sin|cos|tan|exp|log|ln)/g, '$1*$2') // 2sin(x) → 2*sin(x)
+        .replace(/([a-z])\^([-\d.]+)/gi, 'Math.pow($1,$2)') // x^2 → Math.pow(x,2)
+        .replace(/(\d+)\^([-\d.]+)/gi, 'Math.pow($1,$2)')   // 2^x → Math.pow(2,x)
+        .replace(/\bsin\b/gi, 'Math.sin')
+        .replace(/\bcos\b/gi, 'Math.cos')
+        .replace(/\btan\b/gi, 'Math.tan')
+        .replace(/\bln\b/gi, 'Math.log')   // ln(x) → Math.log(x)
+        .replace(/\blog\b/gi, 'Math.log10')
+        .replace(/\bexp\b/gi, 'Math.exp')
+        .replace(/\be\b/gi, 'Math.E')
+        .replace(/\bpi\b/gi, 'Math.PI');
+    }
+
+    function graficar() {
+      const f1Text = procesarFuncion(document.getElementById("func1").value);
+      const f2Raw = document.getElementById("func2").value.trim();
+      const f2Text = f2Raw ? procesarFuncion(f2Raw) : null;
+
+      const a = eval(procesarFuncion(document.getElementById("a").value));
+      const b = eval(procesarFuncion(document.getElementById("b").value));
+
+      const pasos = 300;
+      const x = [], y1 = [], y2 = [], areaX = [], areaY = [];
+
+      for (let i = 0; i <= pasos; i++) {
+        const xi = a + (b - a) * i / pasos;
+        const yi1 = eval(f1Text.replace(/x/g, `(${xi})`));
+        const yi2 = f2Text ? eval(f2Text.replace(/x/g, `(${xi})`)) : 0;
+        x.push(xi);
+        y1.push(yi1);
+        y2.push(yi2);
+      }
+
+      const trace1 = {
+        x, y: y1, mode: 'lines', name: 'Función 1', line: { color: 'blue' }
+      };
+
+      const trace2 = f2Text ? {
+        x, y: y2, mode: 'lines', name: 'Función 2', line: { color: 'green' }
+      } : null;
+
+      const areaTrace = {
+        x: [...x, ...x.slice().reverse()],
+        y: f2Text
+          ? [...y1, ...y2.slice().reverse()]
+          : [...y1, ...Array(y1.length).fill(0).reverse()],
+        fill: 'toself',
+        fillcolor: 'rgba(255, 100, 100, 0.5)',
+        line: { color: 'transparent' },
+        name: 'Área',
+        type: 'scatter'
+      };
+
+      const data = f2Text ? [trace1, trace2, areaTrace] : [trace1, areaTrace];
+
+      Plotly.newPlot('grafica', data, {
+        title: 'Área entre Curvas',
+        xaxis: { title: 'x' },
+        yaxis: { title: 'f(x)' },
+        showlegend: true
+      });
+    }
+  </script>
+</body>
+</html>
